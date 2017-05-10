@@ -120,17 +120,15 @@ function SonobiHtb(configs) {
         }
         //? }
 
-        // building Sonobi's keyMaker URL params for the queryObj
         var keyMaker = {};
-        // Sonobi is SRA so include all returnParcels
+        // Sonobi is SRA so iterate through all returnParcels for xSlotName and sonobiKey
         for (var i = 0; i < returnParcels.length; i++) {
             var slotName = returnParcels[i].xSlotName;
             var placementID = returnParcels[i].xSlotRef.sonobiKey;
             keyMaker[slotName] = placementID;
         }
-        var queryObj = encodeURIComponent(JSON.stringify(keyMaker));
-
-        var url = __baseUrl + queryObj;
+        // Build query string params
+        var queryParams = '?key_maker=' + encodeURIComponent(JSON.stringify(keyMaker));
 
         /* generate a unique request identifier for storing request-specific information */
         var requestId = '_' + System.generateUniqueId();
@@ -138,9 +136,11 @@ function SonobiHtb(configs) {
         /* callback function using the unique request ID */
         var callback = 'window.' + SpaceCamp.NAMESPACE + '.' + __profile.namespace + '.adResponseCallbacks.' + requestId;
 
+        //
+        var url = __baseUrl + queryParams + '&cv=' + callback;
         return {
             url: url,
-            callbackId: callback
+            callbackId: requestId
         };
     }
 
@@ -321,7 +321,7 @@ function SonobiHtb(configs) {
         __bidTransformers.price = BidTransformer(bidTransformerConfigs.price);
         //? }
 
-        __baseUrl = Browser.getProtocol() + '//apex.go.sonobi.com/trinity.js?key_maker=';
+        __baseUrl = Browser.getProtocol() + '//apex.go.sonobi.com/trinity.js';
 
         __baseClass = Partner(__profile, configs, null, {
             parseResponse: __parseResponse,
