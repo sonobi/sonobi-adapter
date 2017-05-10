@@ -30,6 +30,7 @@ var RenderService;
 
 //? if (DEBUG) {
 var ConfigValidators = require('config-validators.js');
+var PartnerSpecificValidator = require('sonobi-htb-validator.js');
 var Inspector = require('schema-inspector.js');
 //? }
 
@@ -263,7 +264,7 @@ function SonobiHtb(configs) {
         };
 
         //? if (DEBUG) {
-        var results = ConfigValidators.PartnerModule(configs);
+        var results = ConfigValidators.partnerBaseConfig(configs) || PartnerSpecificValidator(configs);
 
         if (results) {
             throw Whoopsie('INVALID_CONFIG', results);
