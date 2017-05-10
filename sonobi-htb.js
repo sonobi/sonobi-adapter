@@ -134,10 +134,10 @@ function SonobiHtb(configs) {
         var requestId = '_' + System.generateUniqueId();
 
         /* callback function using the unique request ID */
-        var callback = 'window.' + SpaceCamp.NAMESPACE + '.' + __profile.namespace + '.adResponseCallbacks.' + requestId;
-
-        //
+        var callback = 'sbi_' + requestId;
+        // Build URL
         var url = __baseUrl + queryParams + '&cv=' + callback;
+
         return {
             url: url,
             callbackId: requestId
