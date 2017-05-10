@@ -130,6 +130,8 @@ function SonobiHtb(configs) {
         }
         var queryObj = encodeURIComponent(JSON.stringify(keyMaker));
 
+        var url = __baseUrl + queryObj;
+
         /* generate a unique request identifier for storing request-specific information */
         var requestId = '_' + System.generateUniqueId();
 
@@ -137,8 +139,7 @@ function SonobiHtb(configs) {
         var callback = 'window.' + SpaceCamp.NAMESPACE + '.' + __profile.namespace + '.adResponseCallbacks.' + requestId;
 
         return {
-            url: __baseUrl,
-            data: queryObj,
+            url: url,
             callbackId: callback
         };
     }
