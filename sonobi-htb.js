@@ -320,7 +320,7 @@ function SonobiHtb(configs) {
         __bidTransformers.price = BidTransformer(bidTransformerConfigs.price);
         //? }
 
-        __baseUrl = Browser.getProtocol() + 'apex.go.sonobi.com/trinity.js?key_maker=';
+        __baseUrl = Browser.getProtocol() + '//apex.go.sonobi.com/trinity.js?key_maker=';
 
         __baseClass = Partner(__profile, configs, null, {
             parseResponse: __parseResponse,
