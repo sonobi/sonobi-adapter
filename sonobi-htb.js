@@ -244,7 +244,7 @@ function SonobiHtb(configs) {
                     value: 0
                 }
             },
-            // Figure out what to do for targetingKeys section
+            // TODO: Figure out what to do for targetingKeys section
             targetingKeys: {
                 id: 'ix_sbi_id',
                 om: 'ix_sbi_om',
