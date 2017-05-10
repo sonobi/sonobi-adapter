@@ -230,6 +230,7 @@ function SonobiHtb(configs) {
         __profile = {
             partnerId: 'SonobiHtb',
             namespace: 'SonobiHtb',
+            statsId: 'SBI',
             version: '2.0.0',
             targetingType: 'slot',
             enabledAnalytics: {
