@@ -119,7 +119,7 @@ function SonobiHtb(configs) {
 
         /* Sonobi is SRA so iterate through all returnParcels for xSlotName and sonobiKey */
         for (var i = 0; i < returnParcels.length; i++) {
-            var slotName = returnParcels[i].xSlotName;
+            var slotName = returnParcels[i].htSlot.getName() + '-' + returnParcels[i].xSlotName;
             var placementID = returnParcels[i].xSlotRef.sonobiKey;
             keyMaker[slotName] = placementID;
         }
@@ -159,14 +159,14 @@ function SonobiHtb(configs) {
         for (var i = 0; i < returnParcels.length; i++) {
             var curReturnParcel = returnParcels[i];
 
-            var xSlotName = curReturnParcel.xSlotName;
+            var slotName = curReturnParcel.htSlot.getName() + '-' + curReturnParcel.xSlotName; 
 
             /* Make sure returnParcel has matching bid */
-            if (!bids.hasOwnProperty(xSlotName)) {
+            if (!bids.hasOwnProperty(slotName)) {
                 continue;
             }
 
-            var bid = bids[xSlotName];
+            var bid = bids[slotName];
 
             if (!Utilities.isEmpty(bid)){
                 /* Send analytics if enabled by partner */
