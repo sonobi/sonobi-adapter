@@ -1,5 +1,5 @@
 /**
- * @author:    Partner
+ * @author:    Denis Marchin <denis.marchin@indexexchange.com>
  * @license:   UNLICENSED
  *
  * @copyright: Copyright (c) 2017 by Index Exchange. All rights reserved.
@@ -19,8 +19,11 @@
 var BidTransformer = require('bid-transformer.js');
 var Browser = require('browser.js');
 var Classify = require('classify.js');
+var Network = require('network.js');
+var Prms = require('prms.js');
 var Constants = require('constants.js');
 var Partner = require('partner.js');
+var Size = require('size.js');
 var SpaceCamp = require('space-camp.js');
 var System = require('system.js');
 var Utilities = require('utilities.js');
@@ -31,7 +34,6 @@ var RenderService;
 //? if (DEBUG) {
 var ConfigValidators = require('config-validators.js');
 var PartnerSpecificValidator = require('sonobi-htb-validator.js');
-var Inspector = require('schema-inspector.js');
 //? }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +41,7 @@ var Inspector = require('schema-inspector.js');
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Partner module template
+ * Sonobi Header Tag Bidder Module
  *
  * @class
  */
@@ -79,6 +81,23 @@ function SonobiHtb(configs) {
      */
     var __bidTransformers;
 
+    /**
+     * Ad response storage for different requests;
+     *
+     * @private {object}
+     */
+    var __adResponseStore;
+
+    /* Public
+     * ---------------------------------- */
+
+     /**
+     * Storage for dynamically generated ad respsonse callbacks.
+     * 
+     * @private {object}
+     */
+    var adResponseCallbacks;
+
     /* =====================================
      * Functions
      * ---------------------------------- */
@@ -95,74 +114,41 @@ function SonobiHtb(configs) {
      * @return {object}
      */
     function __generateRequestObj(returnParcels) {
-        //? if (DEBUG){
-        var results = Inspector.validate({
-            type: 'array',
-            exactLength: 1,
-            items: {
-                type: 'object',
-                properties: {
-                    htSlot: {
-                        type: 'object'
-                    },
-                    xSlotRef: {
-                        type: 'object'
-                    },
-                    xSlotName: {
-                        type: 'string',
-                        minLength: 1
-                    }
-                }
-            }
-        }, returnParcels);
-        if (!results.valid) {
-            throw Whoopsie('INVALID_ARGUMENT', results.format());
-        }
-        //? }
 
         var keyMaker = {};
-        // Sonobi is SRA so iterate through all returnParcels for xSlotName and sonobiKey
+
+        /* Sonobi is SRA so iterate through all returnParcels for xSlotName and sonobiKey */
         for (var i = 0; i < returnParcels.length; i++) {
             var slotName = returnParcels[i].xSlotName;
             var placementID = returnParcels[i].xSlotRef.sonobiKey;
             keyMaker[slotName] = placementID;
         }
-        // Build query string params
+        /* Build query string params */
         var queryParams = '?key_maker=' + encodeURIComponent(JSON.stringify(keyMaker));
 
-        /* generate a unique request identifier for storing request-specific information */
+        /* Make the request inside an iframe and store the iframe for later access */
+        var IFrame = Browser.createHiddenIFrame();
         var requestId = '_' + System.generateUniqueId();
 
-        /* callback function using the unique request ID */
-        var callback = 'sbi_' + requestId;
-        // Build URL
-        var url = __baseUrl + queryParams + '&cv=' + callback;
+        IFrame.contentWindow.sbi = function (responseText) {
+            window.parent[SpaceCamp.NAMESPACE][__profile.namespace].adResponseCallbacks[requestId](responseText);
+        };
+
+        /* build url */
+        var url = __baseUrl + queryParams + '&cv=sbi';
 
         return {
             url: url,
-            callbackId: requestId
+            callbackId: requestId,
+            iframe: IFrame
         };
     }
 
-    function adResponseCallback(adResponse) {
-        /* get callbackId from adResponse here */
-        var callbackId = 0;
-        __baseClass._adResponseStore[callbackId] = adResponse;
-    }
     /* ------------------------------------------------------------------------------ */
 
     /* Helpers
      * ---------------------------------- */
 
-    /**
-     * This function will render the ad given.
-     *
-     * @param  {Object} doc The document of the iframe where the ad will go.
-     * @param  {string} adm The ad code that came with the original demand.
-     */
-    function __render(doc, adm) {
-        System.documentWrite(doc, adm);
-    }
 
     /* Parses and extracts demand from adResponse according to the adapter and then attaches it
      * to the corresponding bid's returnParcel in the correct format using targeting keys.
@@ -170,30 +156,91 @@ function SonobiHtb(configs) {
     function __parseResponse(sessionId, adResponse, returnParcels, outstandingXSlotNames) {
         var bids = adResponse.slots;
 
-        // Sonobi is SRA so loop through all returnParcels
         for (var i = 0; i < returnParcels.length; i++) {
             var curReturnParcel = returnParcels[i];
 
-            // Make sure returnParcel has matching bid
-            if (!bids.hasOwnProperty(curReturnParcel.xSlotName)) {
+            var xSlotName = curReturnParcel.xSlotName;
+
+            /* Make sure returnParcel has matching bid */
+            if (!bids.hasOwnProperty(xSlotName)) {
                 continue;
             }
 
-            // Send analytics if enabled by partner
-            if (__profile.enabledAnalytics.requestTime) {
-                EventsService.emit('bidder_bid', {
-                    sessionId: sessionId,
-                    partnerId: __profile.partnerId,
-                    htSlotName: curReturnParcel.htSlot.getName(),
-                    xSlotNames: [curReturnParcel.xSlotName]
-                });
+            var bid = bids[xSlotName];
+
+            if (!Utilities.isEmpty(bid)){
+                /* Send analytics if enabled by partner */
+                if (__profile.enabledAnalytics.requestTime) {
+                    EventsService.emit('hs_bidder_bid', {
+                        sessionId: sessionId,
+                        partnerId: __profile.partnerId,
+                        htSlotName: curReturnParcel.htSlot.getName(),
+                        xSlotNames: [curReturnParcel.xSlotName]
+                    });
+
+                    Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getName()], curReturnParcel.xSlotName);
+                }
+
+                /* Extract size */
+                var sizeArray = [Number(bid.sbi_size[0]), Number(bid.sbi_size[1])]; // jshint ignore: line
+                curReturnParcel.size = sizeArray; 
+
+                /* Attach targeting keys to returnParcel slots */
+                curReturnParcel.targetingType = 'slot';
+                curReturnParcel.targeting = {};
+
+                var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
+
+                /* custom mode sets all the targeting keys that are returned by sonobi */
+                if (__baseClass._configs.lineItemType === Constants.LineItemTypes.CUSTOM){
+                    for (var targetingKey in bid){
+                        if (!bid.hasOwnProperty(targetingKey)){
+                            continue;
+                        }
+                        curReturnParcel.targeting[targetingKey] = bid[targetingKey];
+                    }
+                } else {
+                    var targetingCpm;
+                    if (Utilities.isNumeric(bidPriceLevel)) {
+                        targetingCpm = __bidTransformers.targeting.apply(bidPriceLevel);
+                    } else {
+                        targetingCpm = bidPriceLevel;
+                    }
+
+                    curReturnParcel.targeting[__baseClass._configs.targetingKeys.om] = [Size.arrayToString(sizeArray) + '_' + targetingCpm];
+                    curReturnParcel.targeting.sbi_aid = [bid.sbi_aid]; // jshint ignore: line
+                }
+
+                /* server to use for creative, technically page level but assign to every slot because it is used with slot demand */
+                if (adResponse.hasOwnProperty('sbi_dc')){
+                    returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
+                }
+
+                //? if(FEATURES.RETURN_CREATIVE) {
+                curReturnParcel.adm = '<script type="text/javascript"src="//'+ adResponse.sbi_dc +'apex.go.sonobi.com/sbi.js?as=dfp&aid='+ bid.sbi_aid +'"></script>'; // jshint ignore: line
+                //? }
+
+                //? if(FEATURES.RETURN_PRICE) {
+                if (Utilities.isNumeric(bidPriceLevel)) {
+                    curReturnParcel.price = Number(__bidTransformers.price.apply(bidPriceLevel));
+                }
+                //? }
+
+            } else {
+                if (__profile.enabledAnalytics.requestTime) {
+                    EventsService.emit('hs_bidder_pass', {
+                        sessionId: sessionId,
+                        partnerId: __profile.partnerId,
+                        htSlotName: curReturnParcel.htSlot.getName(),
+                        xSlotNames: [curReturnParcel.xSlotName]
+                    });
+                }
 
                 Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getName()], curReturnParcel.xSlotName);
-            }
+                curReturnParcel.pass = true;
 
-            // Attach targeting keys to returnParcel slots
-            returnParcels[i].targetingType = 'slot';
-            returnParcels[i].targeting = bids[curReturnParcel.xSlotName];
+                continue;
+            }            
         }
 
         if (__profile.enabledAnalytics.requestTime) {
@@ -202,7 +249,7 @@ function SonobiHtb(configs) {
                     continue;
                 }
 
-                EventsService.emit('bidder_pass', {
+                EventsService.emit('hs_bidder_pass', {
                     sessionId: sessionId,
                     partnerId: __profile.partnerId,
                     htSlotName: htSlotName,
@@ -210,14 +257,196 @@ function SonobiHtb(configs) {
                 });
             }
         }
+    }
 
-        returnParcels.push({
-            partnerId: __profile.partnerId,
-            targetingType: 'page',
-            targeting: {
-                'sbi_dc': adResponse.sbi_dc // jshint ignore:line
+    /**
+     * Generate an ad response callback that stores ad responses under 
+     * callbackId and then deletes itself.
+     * 
+     * @param {any} callbackId 
+     * @returns {fun}
+     */
+    function __generateAdResponseCallback(callbackId) {
+        return function (adResponse) {
+            __adResponseStore[callbackId] = adResponse;
+            delete adResponseCallbacks[callbackId];
+        };
+    }
+
+    /**
+     * Send a demand request to the partner and store the demand back in the returnParcels.
+     * 
+     * @param {any} sessionId 
+     * @param {any} returnParcels 
+     */
+    function __sendDemandRequest(sessionId, returnParcels) {
+        if (returnParcels.length === 0) {
+            return Prms.resolve([]);
+        }
+
+        var request = __generateRequestObj(returnParcels);
+        var IFrame = request.iframe;
+        adResponseCallbacks[request.callbackId] = __generateAdResponseCallback(request.callbackId);
+
+        var xSlotNames = {};
+
+        if (__profile.enabledAnalytics.requestTime) {
+            for (var i = 0; i < returnParcels.length; i++) {
+                var parcel = returnParcels[i];
+
+                if (!xSlotNames.hasOwnProperty(parcel.htSlot.getName())) {
+                    xSlotNames[parcel.htSlot.getName()] = [];
+                }
+
+                xSlotNames[parcel.htSlot.getName()].push(parcel.xSlotName);
             }
+
+            for (var htSlotName in xSlotNames) {
+                if (!xSlotNames.hasOwnProperty(htSlotName)) {
+                    continue;
+                }
+
+                EventsService.emit('hs_bidder_request', {
+                    sessionId: sessionId,
+                    partnerId: __profile.statsId,
+                    htSlotName: htSlotName,
+                    xSlotNames: xSlotNames[htSlotName]
+                });
+            }
+        }
+
+        return new Prms(function (resolve) {
+            EventsService.emit('partner_request_sent', {
+                partner: __profile.partnerId,
+                //? if (DEBUG) {
+                parcels: returnParcels,
+                request: request
+                //? }
+            });
+
+            Network.jsonp({
+                url: request.url,
+                timeout: __baseClass._configs.timeout,
+                sessionId: sessionId,
+                globalTimeout: true,
+                scope: IFrame.contentWindow,
+
+                //? if (DEBUG) {
+                initiatorId: __profile.partnerId,
+                //? }
+
+                onSuccess: function (responseText) {
+                    var responseObj;
+
+                    if (responseText) {
+                        eval.call(null, responseText);
+                    }
+                    responseObj = __adResponseStore[request.callbackId];
+                    delete __adResponseStore[request.callbackId];
+
+                    /* clean up iframe */
+                    IFrame.parentNode.removeChild(IFrame);
+
+                    try {
+                        __parseResponse(sessionId, responseObj, returnParcels, xSlotNames);
+                    } catch (ex) {
+                        EventsService.emit('internal_error', __profile.partnerId + ' error parsing demand: ' + ex, ex.stack);
+                        EventsService.emit('partner_request_complete', {
+                            partner: __profile.partnerId,
+                            status: 'error',
+                            //? if (DEBUG) {
+                            parcels: returnParcels,
+                            request: request
+                            //? }
+                        });
+                    }
+
+                    EventsService.emit('partner_request_complete', {
+                        partner: __profile.partnerId,
+                        status: 'success',
+                        //? if (DEBUG) {
+                        parcels: returnParcels,
+                        request: request
+                        //? }
+                    });
+                    resolve(returnParcels);
+                },
+
+                onTimeout: function () {
+                    EventsService.emit('partner_request_complete', {
+                        partner: __profile.partnerId,
+                        status: 'timeout',
+                        //? if (DEBUG) {
+                        parcels: returnParcels,
+                        request: request
+                        //? }
+                    });
+
+                    /* clean up iframe */
+                    IFrame.parentNode.removeChild(IFrame);
+
+                    if (__profile.enabledAnalytics.requestTime) {
+                        for (var htSlotName in xSlotNames) {
+                            if (!xSlotNames.hasOwnProperty(htSlotName)) {
+                                continue;
+                            }
+
+                            EventsService.emit('hs_bidder_timeout', {
+                                sessionId: sessionId,
+                                partnerId: __profile.statsId,
+                                htSlotName: htSlotName,
+                                xSlotNames: xSlotNames[htSlotName]
+                            });
+                        }
+                    }
+
+                    resolve(returnParcels);
+                },
+
+                onFailure: function () {
+                    EventsService.emit('partner_request_complete', {
+                        partner: __profile.partnerId,
+                        status: 'error',
+                        //? if (DEBUG) {
+                        parcels: returnParcels,
+                        request: request
+                        //? }
+                    });
+
+                    /* clean up iframe */
+                    IFrame.parentNode.removeChild(IFrame);
+
+                    if (__profile.enabledAnalytics.requestTime) {
+                        for (var htSlotName in xSlotNames) {
+                            if (!xSlotNames.hasOwnProperty(htSlotName)) {
+                                continue;
+                            }
+
+                            EventsService.emit('hs_bidder_error', {
+                                sessionId: sessionId,
+                                partnerId: __profile.statsId,
+                                htSlotName: htSlotName,
+                                xSlotNames: xSlotNames[htSlotName]
+                            });
+                        }
+                    }
+
+                    resolve(returnParcels);
+                }
+            });
         });
+    }
+
+    /* send requests for all slots in inParcels */
+    function __retriever(sessionId, inParcels) {
+        var returnParcelSets = __baseClass._generateReturnParcels(inParcels);
+        var demandRequestPromises = [];
+
+        for (var i = 0; i < returnParcelSets.length; i++) {
+            demandRequestPromises.push(__sendDemandRequest(sessionId, returnParcelSets[i]));
+        }
+
+        return demandRequestPromises;
     }
 
     /* =====================================
@@ -247,22 +476,14 @@ function SonobiHtb(configs) {
                     value: 0
                 }
             },
-            // TODO: Figure out what to do for targetingKeys section
             targetingKeys: {
                 id: 'ix_sbi_id',
-                om: 'ix_sbi_om',
-                pm: 'ix_sbi_pm'
-                // In Sonobi partner doc these targeting keys are listed
-                // sbi_ct:
-                // sbi_apoc: premium
-                // sbi_aid: 102.131.195_r4on9
-                // sbi_size: 300x250
-                // sbi_mouse: 4.25
-                // "sbi_dc"
+                om: 'ix_sbi_om'
             },
             lineItemType: Constants.LineItemTypes.ID_AND_SIZE,
             callbackType: Partner.CallbackTypes.CALLBACK_NAME,
-            architecture: Partner.Architectures.SRA
+            architecture: Partner.Architectures.SRA,
+            requestType: Partner.RequestTypes.JSONP
         };
 
         //? if (DEBUG) {
@@ -324,9 +545,15 @@ function SonobiHtb(configs) {
         __baseUrl = Browser.getProtocol() + '//apex.go.sonobi.com/trinity.js';
 
         __baseClass = Partner(__profile, configs, null, {
-            parseResponse: __parseResponse,
-            generateRequestObj: __generateRequestObj,
-            adResponseCallback: adResponseCallback
+            retriever: __retriever
+        });
+
+        /* adstorage vars */
+        adResponseCallbacks = {};
+        __adResponseStore = {};
+
+        __baseClass._setDirectInterface({
+            adResponseCallbacks: adResponseCallbacks
         });
     })();
 
@@ -358,10 +585,7 @@ function SonobiHtb(configs) {
          * ---------------------------------- */
 
         //? if (TEST) {
-        __render: __render,
-        __parseResponse: __parseResponse,
-
-        adResponseCallback: adResponseCallback,
+        __parseResponse: __parseResponse
         //? }
     };
 
