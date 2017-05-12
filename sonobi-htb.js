@@ -199,8 +199,10 @@ function SonobiHtb(configs) {
                 curReturnParcel.targeting = {};
 
                 var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
+                var bidCreative ='<script type="text/javascript"src="//'+ adResponse.sbi_dc +'apex.go.sonobi.com/sbi.js?as=dfp&aid='+ bid.sbi_aid +'"></script>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
+                //? if(FEATURES.GPT_LINE_ITEMS) {
                 if (__baseClass._configs.lineItemType === Constants.LineItemTypes.CUSTOM){
                     for (var targetingKey in bid){
                         if (!bid.hasOwnProperty(targetingKey)){
@@ -218,7 +220,30 @@ function SonobiHtb(configs) {
 
                     curReturnParcel.targeting[__baseClass._configs.targetingKeys.om] = [Size.arrayToString(sizeArray) + '_' + targetingCpm];
                     curReturnParcel.targeting.sbi_aid = [bid.sbi_aid]; // jshint ignore: line
+
+                    if (__baseClass._configs.lineItemType === Constants.LineItemTypes.ID_AND_SIZE) {
+                        RenderService.registerAdByIdAndSize(
+                            sessionId,
+                            __profile.partnerId,
+                            __render, [bidCreative],
+                            '',
+                            __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0,
+                            curReturnParcel.requestId,
+                            curReturnParcel.size
+                        );
+                    } else if (__baseClass._configs.lineItemType === Constants.LineItemTypes.ID_AND_PRICE) {
+                        RenderService.registerAdByIdAndPrice(
+                            sessionId,
+                            __profile.partnerId,
+                            __render, [bidCreative],
+                            '',
+                            __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0,
+                            curReturnParcel.requestId,
+                            targetingCpm
+                        );
+                    }
                 }
+                //? }
 
                 /* server to use for creative, technically page level but assign to every slot because it is used with slot demand */
                 if (adResponse.hasOwnProperty('sbi_dc')){
@@ -226,7 +251,7 @@ function SonobiHtb(configs) {
                 }
 
                 //? if(FEATURES.RETURN_CREATIVE) {
-                curReturnParcel.adm = '<script type="text/javascript"src="//'+ adResponse.sbi_dc +'apex.go.sonobi.com/sbi.js?as=dfp&aid='+ bid.sbi_aid +'"></script>'; // jshint ignore: line
+                curReturnParcel.adm = bidCreative;
                 //? }
 
                 //? if(FEATURES.RETURN_PRICE) {
