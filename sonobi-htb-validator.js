@@ -32,7 +32,7 @@ var partnerValidator = function (configs) {
                     '*': {
                         type: 'object',
                         properties: {
-                            sonobiKey: {
+                            key: {
                                 type: 'string',
                                 minLength: 1
                             }

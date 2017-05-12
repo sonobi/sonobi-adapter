@@ -93,7 +93,7 @@ function SonobiHtb(configs) {
 
      /**
      * Storage for dynamically generated ad respsonse callbacks.
-     * 
+     *
      * @private {object}
      */
     var adResponseCallbacks;
@@ -120,34 +120,43 @@ function SonobiHtb(configs) {
         /* Sonobi is SRA so iterate through all returnParcels for xSlotName and sonobiKey */
         for (var i = 0; i < returnParcels.length; i++) {
             var slotName = returnParcels[i].htSlot.getName() + '-' + returnParcels[i].xSlotName;
-            var placementID = returnParcels[i].xSlotRef.sonobiKey;
-            keyMaker[slotName] = placementID;
+            keyMaker[slotName] = returnParcels[i].xSlotRef.key;
         }
-        /* Build query string params */
-        var queryParams = '?key_maker=' + encodeURIComponent(JSON.stringify(keyMaker));
 
         /* Make the request inside an iframe and store the iframe for later access */
-        var IFrame = Browser.createHiddenIFrame();
+        var iFrame = Browser.createHiddenIFrame();
         var requestId = '_' + System.generateUniqueId();
 
-        IFrame.contentWindow.sbi = function (responseText) {
+        iFrame.contentWindow.sbi = function (responseText) {
             window.parent[SpaceCamp.NAMESPACE][__profile.namespace].adResponseCallbacks[requestId](responseText);
         };
 
-        /* build url */
-        var url = __baseUrl + queryParams + '&cv=sbi';
+        /* build data */
+        var data = {
+            key_maker: JSON.stringify(keyMaker), // jshint ignore:line
+            cv: 'sbi'
+        };
 
         return {
-            url: url,
+            url:  __baseUrl,
             callbackId: requestId,
-            iframe: IFrame
+            iframe: iFrame,
+            data: data
         };
     }
 
-    /* ------------------------------------------------------------------------------ */
 
     /* Helpers
      * ---------------------------------- */
+
+    /**
+     * This function will render the ad given.
+     * @param  {Object} doc The document of the iframe where the ad will go.
+     * @param  {string} adm The ad code that came with the original demand.
+     */
+    function __render(doc, adm) {
+        System.documentWrite(doc, adm);
+    }
 
 
     /* Parses and extracts demand from adResponse according to the adapter and then attaches it
@@ -159,16 +168,16 @@ function SonobiHtb(configs) {
         for (var i = 0; i < returnParcels.length; i++) {
             var curReturnParcel = returnParcels[i];
 
-            var slotName = curReturnParcel.htSlot.getName() + '-' + curReturnParcel.xSlotName; 
+            var slotName = curReturnParcel.htSlot.getName() + '-' + curReturnParcel.xSlotName;
 
             /* Make sure returnParcel has matching bid */
-            if (!bids.hasOwnProperty(slotName)) {
+            if (!Utilities.isObject(bids) || !bids.hasOwnProperty(slotName)) {
                 continue;
             }
 
             var bid = bids[slotName];
 
-            if (!Utilities.isEmpty(bid)){
+            if (Utilities.isObject(bid) && !Utilities.isEmpty(bid)){
                 /* Send analytics if enabled by partner */
                 if (__profile.enabledAnalytics.requestTime) {
                     EventsService.emit('hs_bidder_bid', {
@@ -183,7 +192,7 @@ function SonobiHtb(configs) {
 
                 /* Extract size */
                 var sizeArray = [Number(bid.sbi_size[0]), Number(bid.sbi_size[1])]; // jshint ignore: line
-                curReturnParcel.size = sizeArray; 
+                curReturnParcel.size = sizeArray;
 
                 /* Attach targeting keys to returnParcel slots */
                 curReturnParcel.targetingType = 'slot';
@@ -238,9 +247,7 @@ function SonobiHtb(configs) {
 
                 Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getName()], curReturnParcel.xSlotName);
                 curReturnParcel.pass = true;
-
-                continue;
-            }            
+            }
         }
 
         if (__profile.enabledAnalytics.requestTime) {
@@ -260,10 +267,10 @@ function SonobiHtb(configs) {
     }
 
     /**
-     * Generate an ad response callback that stores ad responses under 
+     * Generate an ad response callback that stores ad responses under
      * callbackId and then deletes itself.
-     * 
-     * @param {any} callbackId 
+     *
+     * @param {any} callbackId
      * @returns {fun}
      */
     function __generateAdResponseCallback(callbackId) {
@@ -275,9 +282,9 @@ function SonobiHtb(configs) {
 
     /**
      * Send a demand request to the partner and store the demand back in the returnParcels.
-     * 
-     * @param {any} sessionId 
-     * @param {any} returnParcels 
+     *
+     * @param {any} sessionId
+     * @param {any} returnParcels
      */
     function __sendDemandRequest(sessionId, returnParcels) {
         if (returnParcels.length === 0) {
@@ -285,7 +292,7 @@ function SonobiHtb(configs) {
         }
 
         var request = __generateRequestObj(returnParcels);
-        var IFrame = request.iframe;
+        var iFrame = request.iframe;
         adResponseCallbacks[request.callbackId] = __generateAdResponseCallback(request.callbackId);
 
         var xSlotNames = {};
@@ -328,42 +335,36 @@ function SonobiHtb(configs) {
                 url: request.url,
                 timeout: __baseClass._configs.timeout,
                 sessionId: sessionId,
+                data: request.data,
                 globalTimeout: true,
-                scope: IFrame.contentWindow,
+                scope: iFrame.contentWindow,
 
                 //? if (DEBUG) {
                 initiatorId: __profile.partnerId,
                 //? }
 
                 onSuccess: function (responseText) {
-                    var responseObj;
-
                     if (responseText) {
                         eval.call(null, responseText);
                     }
-                    responseObj = __adResponseStore[request.callbackId];
+                    var responseObj = __adResponseStore[request.callbackId];
                     delete __adResponseStore[request.callbackId];
 
-                    /* clean up iframe */
-                    IFrame.parentNode.removeChild(IFrame);
+                    /* clean up iFrame */
+                    iFrame.parentNode.removeChild(iFrame);
+
+                    var status = 'success';
 
                     try {
                         __parseResponse(sessionId, responseObj, returnParcels, xSlotNames);
                     } catch (ex) {
                         EventsService.emit('internal_error', __profile.partnerId + ' error parsing demand: ' + ex, ex.stack);
-                        EventsService.emit('partner_request_complete', {
-                            partner: __profile.partnerId,
-                            status: 'error',
-                            //? if (DEBUG) {
-                            parcels: returnParcels,
-                            request: request
-                            //? }
-                        });
+                        status = 'error';
                     }
 
                     EventsService.emit('partner_request_complete', {
                         partner: __profile.partnerId,
-                        status: 'success',
+                        status: status,
                         //? if (DEBUG) {
                         parcels: returnParcels,
                         request: request
@@ -382,8 +383,8 @@ function SonobiHtb(configs) {
                         //? }
                     });
 
-                    /* clean up iframe */
-                    IFrame.parentNode.removeChild(IFrame);
+                    /* clean up iFrame */
+                    iFrame.parentNode.removeChild(iFrame);
 
                     if (__profile.enabledAnalytics.requestTime) {
                         for (var htSlotName in xSlotNames) {
@@ -413,8 +414,8 @@ function SonobiHtb(configs) {
                         //? }
                     });
 
-                    /* clean up iframe */
-                    IFrame.parentNode.removeChild(IFrame);
+                    /* clean up iFrame */
+                    iFrame.parentNode.removeChild(iFrame);
 
                     if (__profile.enabledAnalytics.requestTime) {
                         for (var htSlotName in xSlotNames) {
@@ -494,7 +495,6 @@ function SonobiHtb(configs) {
         }
         //? }
 
-        // TODO: figure out what to do here
         var bidTransformerConfigs = {
             //? if (FEATURES.GPT_LINE_ITEMS) {
             targeting: {
