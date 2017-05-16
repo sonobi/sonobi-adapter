@@ -209,7 +209,11 @@ function SonobiHtb(configs) {
                         if (!bid.hasOwnProperty(targetingKey)){
                             continue;
                         }
-                        curReturnParcel.targeting[targetingKey] = bid[targetingKey];
+                        if (targetingKey === 'sbi_mouse'){
+                            curReturnParcel.targeting[targetingKey] = __bidTransformers.targeting.apply(bid[targetingKey]);
+                        } else {
+                            curReturnParcel.targeting[targetingKey] = bid[targetingKey];
+                        }
                     }
                 } else {
                     var targetingCpm;
@@ -524,7 +528,7 @@ function SonobiHtb(configs) {
         var bidTransformerConfigs = {
             //? if (FEATURES.GPT_LINE_ITEMS) {
             targeting: {
-                inputCentsMultiplier: 1, // Input is in cents
+                inputCentsMultiplier: 100, // Input is in cents
                 outputCentsDivisor: 1, // Output as cents
                 outputPrecision: 0, // With 0 decimal places
                 roundingType: 'FLOOR', // jshint ignore:line
