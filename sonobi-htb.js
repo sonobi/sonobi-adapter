@@ -124,11 +124,12 @@ function SonobiHtb(configs) {
         }
 
         /* Make the request inside an iframe and store the iframe for later access */
-        var iFrame = Browser.createHiddenIFrame();
+        var iFrame = Browser.createHiddenIFrame(null, window);
         var requestId = '_' + System.generateUniqueId();
 
+        var w = window;
         iFrame.contentWindow.sbi = function (responseText) {
-            window.parent[SpaceCamp.NAMESPACE][__profile.namespace].adResponseCallbacks[requestId](responseText);
+            w[SpaceCamp.NAMESPACE][__profile.namespace].adResponseCallbacks[requestId](responseText);
         };
 
         /* build data */
