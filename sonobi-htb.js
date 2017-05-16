@@ -128,7 +128,14 @@ function SonobiHtb(configs) {
         var requestId = '_' + System.generateUniqueId();
 
         iFrame.contentWindow.sbi = function (responseText) {
-            window.parent[SpaceCamp.NAMESPACE][__profile.namespace].adResponseCallbacks[requestId](responseText);
+            var w = window;
+            for (var i = 0; i < 10; i++) {
+                if (w.headertag) {
+                    w[SpaceCamp.NAMESPACE][__profile.namespace].adResponseCallbacks[requestId](responseText);
+                    break;
+                }
+                w = w.parent;
+            }
         };
 
         /* build data */
