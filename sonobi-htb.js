@@ -200,7 +200,7 @@ function SonobiHtb(configs) {
                 curReturnParcel.targeting = {};
 
                 var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
-                var bidCreative ='<script type="text/javascript"src="//'+ adResponse.sbi_dc +'apex.go.sonobi.com/sbi.js?as=dfp&aid='+ bid.sbi_aid +'"></script>'; // jshint ignore: line
+                var bidCreative ='<html><body><script type="text/javascript"src="//'+ adResponse.sbi_dc +'apex.go.sonobi.com/sbi.js?as=dfp&aid='+ bid.sbi_aid +'"></script></body></html>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
                 //? if(FEATURES.GPT_LINE_ITEMS) {
@@ -263,6 +263,17 @@ function SonobiHtb(configs) {
                 if (Utilities.isNumeric(bidPriceLevel)) {
                     curReturnParcel.price = Number(__bidTransformers.price.apply(bidPriceLevel));
                 }
+                //? }
+
+                //? if(FEATURES.INTERNAL_RENDER) {
+                var pubKitAdId = RenderService.registerAd(
+                    sessionId,
+                    __profile.partnerId,
+                    __render, [bidCreative],
+                    '',
+                    __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0
+                );
+                curReturnParcel.targeting.pubKitAdId = pubKitAdId;
                 //? }
 
             } else {
@@ -544,7 +555,7 @@ function SonobiHtb(configs) {
             //? }
             //? if (FEATURES.RETURN_PRICE) {
             price: {
-                inputCentsMultiplier: 1, // Input is in cents
+                inputCentsMultiplier: 100, // Input is in cents
                 outputCentsDivisor: 1, // Output as cents
                 outputPrecision: 0, // With 0 decimal places
                 roundingType: 'NONE',
@@ -565,10 +576,10 @@ function SonobiHtb(configs) {
 
         __bidTransformers = {};
 
-        //? if(['Universal', 'Cassandra', 'PreGpt'].indexOf(PRODUCT) !== -1) {
+        //? if(FEATURES.GPT_LINE_ITEMS) {
         __bidTransformers.targeting = BidTransformer(bidTransformerConfigs.targeting);
         //? }
-        //? if(['Universal', 'Cassandra', 'PostGpt'].indexOf(PRODUCT) !== -1) {
+        //? if(FEATURES.RETURN_PRICE) {
         __bidTransformers.price = BidTransformer(bidTransformerConfigs.price);
         //? }
 
