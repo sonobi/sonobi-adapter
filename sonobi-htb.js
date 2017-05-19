@@ -91,7 +91,7 @@ function SonobiHtb(configs) {
     /* Public
      * ---------------------------------- */
 
-     /**
+    /**
      * Storage for dynamically generated ad respsonse callbacks.
      *
      * @private {object}
@@ -139,13 +139,12 @@ function SonobiHtb(configs) {
         };
 
         return {
-            url:  __baseUrl,
+            url: __baseUrl,
             callbackId: requestId,
             iframe: iFrame,
             data: data
         };
     }
-
 
     /* Helpers
      * ---------------------------------- */
@@ -158,7 +157,6 @@ function SonobiHtb(configs) {
     function __render(doc, adm) {
         System.documentWrite(doc, adm);
     }
-
 
     /* Parses and extracts demand from adResponse according to the adapter and then attaches it
      * to the corresponding bid's returnParcel in the correct format using targeting keys.
@@ -178,7 +176,7 @@ function SonobiHtb(configs) {
 
             var bid = bids[slotName];
 
-            if (Utilities.isObject(bid) && !Utilities.isEmpty(bid)){
+            if (Utilities.isObject(bid) && !Utilities.isEmpty(bid)) {
                 /* Send analytics if enabled by partner */
                 if (__profile.enabledAnalytics.requestTime) {
                     EventsService.emit('hs_bidder_bid', {
@@ -200,16 +198,16 @@ function SonobiHtb(configs) {
                 curReturnParcel.targeting = {};
 
                 var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
-                var bidCreative ='<html><body><script type="text/javascript"src="//'+ adResponse.sbi_dc +'apex.go.sonobi.com/sbi.js?as=dfp&aid='+ bid.sbi_aid +'"></script></body></html>'; // jshint ignore: line
+                var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=dfp&aid=' + bid.sbi_aid + '"></script></body></html>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
                 //? if(FEATURES.GPT_LINE_ITEMS) {
-                if (__baseClass._configs.lineItemType === Constants.LineItemTypes.CUSTOM){
-                    for (var targetingKey in bid){
-                        if (!bid.hasOwnProperty(targetingKey)){
+                if (__baseClass._configs.lineItemType === Constants.LineItemTypes.CUSTOM) {
+                    for (var targetingKey in bid) {
+                        if (!bid.hasOwnProperty(targetingKey)) {
                             continue;
                         }
-                        if (targetingKey === 'sbi_mouse'){
+                        if (targetingKey === 'sbi_mouse') {
                             curReturnParcel.targeting[targetingKey] = __bidTransformers.targeting.apply(bid[targetingKey]);
                         } else {
                             curReturnParcel.targeting[targetingKey] = bid[targetingKey];
@@ -251,7 +249,7 @@ function SonobiHtb(configs) {
                 //? }
 
                 /* server to use for creative, technically page level but assign to every slot because it is used with slot demand */
-                if (adResponse.hasOwnProperty('sbi_dc')){
+                if (adResponse.hasOwnProperty('sbi_dc')) {
                     returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
                 }
 
@@ -391,9 +389,6 @@ function SonobiHtb(configs) {
                     var responseObj = __adResponseStore[request.callbackId];
                     delete __adResponseStore[request.callbackId];
 
-                    /* clean up iFrame */
-                    iFrame.parentNode.removeChild(iFrame);
-
                     var status = 'success';
 
                     try {
@@ -424,9 +419,6 @@ function SonobiHtb(configs) {
                         //? }
                     });
 
-                    /* clean up iFrame */
-                    iFrame.parentNode.removeChild(iFrame);
-
                     if (__profile.enabledAnalytics.requestTime) {
                         for (var htSlotName in xSlotNames) {
                             if (!xSlotNames.hasOwnProperty(htSlotName)) {
@@ -454,9 +446,6 @@ function SonobiHtb(configs) {
                         request: request
                         //? }
                     });
-
-                    /* clean up iFrame */
-                    iFrame.parentNode.removeChild(iFrame);
 
                     if (__profile.enabledAnalytics.requestTime) {
                         for (var htSlotName in xSlotNames) {
