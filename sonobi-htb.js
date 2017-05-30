@@ -340,11 +340,11 @@ function SonobiHtb(configs) {
             for (var i = 0; i < returnParcels.length; i++) {
                 var parcel = returnParcels[i];
 
-                if (!xSlotNames.hasOwnProperty(parcel.htSlot.getName())) {
-                    xSlotNames[parcel.htSlot.getName()] = [];
+                if (!xSlotNames.hasOwnProperty(parcel.htSlot.getId())) {
+                    xSlotNames[parcel.htSlot.getId()] = [];
                 }
 
-                xSlotNames[parcel.htSlot.getName()].push(parcel.xSlotName);
+                xSlotNames[parcel.htSlot.getId()].push(parcel.xSlotName);
             }
 
             for (var htSlotId in xSlotNames) {
