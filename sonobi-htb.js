@@ -179,14 +179,14 @@ function SonobiHtb(configs) {
             if (Utilities.isObject(bid) && !Utilities.isEmpty(bid)) {
                 /* Send analytics if enabled by partner */
                 if (__profile.enabledAnalytics.requestTime) {
-                    EventsService.emit('hs_bidder_bid', {
+                    EventsService.emit('hs_slot_bid', {
                         sessionId: sessionId,
-                        partnerId: __profile.partnerId,
-                        htSlotName: curReturnParcel.htSlot.getName(),
+                        statsId: __profile.statsId,
+                        htSlotId: curReturnParcel.htSlot.getId(),
                         xSlotNames: [curReturnParcel.xSlotName]
                     });
 
-                    Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getName()], curReturnParcel.xSlotName);
+                    Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getId()], curReturnParcel.xSlotName);
                 }
 
                 /* Extract size */
@@ -276,30 +276,30 @@ function SonobiHtb(configs) {
 
             } else {
                 if (__profile.enabledAnalytics.requestTime) {
-                    EventsService.emit('hs_bidder_pass', {
+                    EventsService.emit('hs_slot_pass', {
                         sessionId: sessionId,
-                        partnerId: __profile.partnerId,
-                        htSlotName: curReturnParcel.htSlot.getName(),
+                        statsId: __profile.statsId,
+                        htSlotId: curReturnParcel.htSlot.getId(),
                         xSlotNames: [curReturnParcel.xSlotName]
                     });
                 }
 
-                Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getName()], curReturnParcel.xSlotName);
+                Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getId()], curReturnParcel.xSlotName);
                 curReturnParcel.pass = true;
             }
         }
 
         if (__profile.enabledAnalytics.requestTime) {
-            for (var htSlotName in outstandingXSlotNames) {
-                if (!outstandingXSlotNames.hasOwnProperty(htSlotName)) {
+            for (var htSlotId in outstandingXSlotNames) {
+                if (!outstandingXSlotNames.hasOwnProperty(htSlotId)) {
                     continue;
                 }
 
-                EventsService.emit('hs_bidder_pass', {
+                EventsService.emit('hs_slot_pass', {
                     sessionId: sessionId,
-                    partnerId: __profile.partnerId,
-                    htSlotName: htSlotName,
-                    xSlotNames: outstandingXSlotNames[htSlotName]
+                    statsId: __profile.statsId,
+                    htSlotId: htSlotId,
+                    xSlotNames: outstandingXSlotNames[htSlotId]
                 });
             }
         }
@@ -340,23 +340,23 @@ function SonobiHtb(configs) {
             for (var i = 0; i < returnParcels.length; i++) {
                 var parcel = returnParcels[i];
 
-                if (!xSlotNames.hasOwnProperty(parcel.htSlot.getName())) {
-                    xSlotNames[parcel.htSlot.getName()] = [];
+                if (!xSlotNames.hasOwnProperty(parcel.htSlot.getId())) {
+                    xSlotNames[parcel.htSlot.getId()] = [];
                 }
 
-                xSlotNames[parcel.htSlot.getName()].push(parcel.xSlotName);
+                xSlotNames[parcel.htSlot.getId()].push(parcel.xSlotName);
             }
 
-            for (var htSlotName in xSlotNames) {
-                if (!xSlotNames.hasOwnProperty(htSlotName)) {
+            for (var htSlotId in xSlotNames) {
+                if (!xSlotNames.hasOwnProperty(htSlotId)) {
                     continue;
                 }
 
-                EventsService.emit('hs_bidder_request', {
+                EventsService.emit('hs_slot_request', {
                     sessionId: sessionId,
-                    partnerId: __profile.statsId,
-                    htSlotName: htSlotName,
-                    xSlotNames: xSlotNames[htSlotName]
+                    statsId: __profile.statsId,
+                    htSlotId: htSlotId,
+                    xSlotNames: xSlotNames[htSlotId]
                 });
             }
         }
@@ -420,16 +420,16 @@ function SonobiHtb(configs) {
                     });
 
                     if (__profile.enabledAnalytics.requestTime) {
-                        for (var htSlotName in xSlotNames) {
-                            if (!xSlotNames.hasOwnProperty(htSlotName)) {
+                        for (var htSlotId in xSlotNames) {
+                            if (!xSlotNames.hasOwnProperty(htSlotId)) {
                                 continue;
                             }
 
-                            EventsService.emit('hs_bidder_timeout', {
+                            EventsService.emit('hs_slot_timeout', {
                                 sessionId: sessionId,
-                                partnerId: __profile.statsId,
-                                htSlotName: htSlotName,
-                                xSlotNames: xSlotNames[htSlotName]
+                                statsId: __profile.statsId,
+                                htSlotId: htSlotId,
+                                xSlotNames: xSlotNames[htSlotId]
                             });
                         }
                     }
@@ -448,16 +448,16 @@ function SonobiHtb(configs) {
                     });
 
                     if (__profile.enabledAnalytics.requestTime) {
-                        for (var htSlotName in xSlotNames) {
-                            if (!xSlotNames.hasOwnProperty(htSlotName)) {
+                        for (var htSlotId in xSlotNames) {
+                            if (!xSlotNames.hasOwnProperty(htSlotId)) {
                                 continue;
                             }
 
-                            EventsService.emit('hs_bidder_error', {
+                            EventsService.emit('hs_slot_error', {
                                 sessionId: sessionId,
-                                partnerId: __profile.statsId,
-                                htSlotName: htSlotName,
-                                xSlotNames: xSlotNames[htSlotName]
+                                statsId: __profile.statsId,
+                                htSlotId: htSlotId,
+                                xSlotNames: xSlotNames[htSlotId]
                             });
                         }
                     }
