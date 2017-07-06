@@ -190,8 +190,8 @@ function SonobiHtb(configs) {
                 }
 
                 /* Extract size */
-                var sizeArray = [Number(bid.sbi_size[0]), Number(bid.sbi_size[1])]; // jshint ignore: line
-                curReturnParcel.size = sizeArray;
+                var sizeString = bid.sbi_size; // jshint ignore: line
+                curReturnParcel.size = sizeString;
 
                 /* Attach targeting keys to returnParcel slots */
                 curReturnParcel.targetingType = 'slot';
@@ -221,7 +221,7 @@ function SonobiHtb(configs) {
                         targetingCpm = bidPriceLevel;
                     }
 
-                    curReturnParcel.targeting[__baseClass._configs.targetingKeys.om] = [Size.arrayToString(sizeArray) + '_' + targetingCpm];
+                    curReturnParcel.targeting[__baseClass._configs.targetingKeys.om] = [sizeString + '_' + targetingCpm];
                     curReturnParcel.targeting.sbi_aid = [bid.sbi_aid]; // jshint ignore: line
 
                     if (__baseClass._configs.lineItemType === Constants.LineItemTypes.ID_AND_SIZE) {
