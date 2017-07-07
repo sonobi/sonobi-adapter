@@ -183,10 +183,13 @@ function SonobiHtb(configs) {
                         sessionId: sessionId,
                         statsId: __profile.statsId,
                         htSlotId: curReturnParcel.htSlot.getId(),
-                        xSlotNames: [curReturnParcel.xSlotName]
+                        xSlotNames: [curReturnParcel.xSlotName],
+                        requestId: curReturnParcel.requestId
                     });
 
-                    Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getId()], curReturnParcel.xSlotName);
+                    if (outstandingXSlotNames[curReturnParcel.htSlot.getId()] && outstandingXSlotNames[curReturnParcel.htSlot.getId()][curReturnParcel.requestId]){
+                        Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getId()][curReturnParcel.requestId], curReturnParcel.xSlotName);
+                    }
                 }
 
                 /* Extract size */
@@ -213,6 +216,11 @@ function SonobiHtb(configs) {
                             curReturnParcel.targeting[targetingKey] = bid[targetingKey];
                         }
                     }
+
+                    /* server to use for creative, technically page level but assign to every slot because it is used with slot demand */
+                    if (adResponse.hasOwnProperty('sbi_dc')) {
+                        returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
+                    }
                 } else {
                     var targetingCpm;
                     if (Utilities.isNumeric(bidPriceLevel)) {
@@ -222,7 +230,7 @@ function SonobiHtb(configs) {
                     }
 
                     curReturnParcel.targeting[__baseClass._configs.targetingKeys.om] = [sizeString + '_' + targetingCpm];
-                    curReturnParcel.targeting.sbi_aid = [bid.sbi_aid]; // jshint ignore: line
+                    curReturnParcel.targeting[__baseClass._configs.targetingKeys.id] = [curReturnParcel.requestId];
 
                     if (__baseClass._configs.lineItemType === Constants.LineItemTypes.ID_AND_SIZE) {
                         RenderService.registerAdByIdAndSize(
@@ -248,11 +256,6 @@ function SonobiHtb(configs) {
                 }
                 //? }
 
-                /* server to use for creative, technically page level but assign to every slot because it is used with slot demand */
-                if (adResponse.hasOwnProperty('sbi_dc')) {
-                    returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
-                }
-
                 //? if(FEATURES.RETURN_CREATIVE) {
                 curReturnParcel.adm = bidCreative;
                 //? }
@@ -275,33 +278,13 @@ function SonobiHtb(configs) {
                 //? }
 
             } else {
-                if (__profile.enabledAnalytics.requestTime) {
-                    EventsService.emit('hs_slot_pass', {
-                        sessionId: sessionId,
-                        statsId: __profile.statsId,
-                        htSlotId: curReturnParcel.htSlot.getId(),
-                        xSlotNames: [curReturnParcel.xSlotName]
-                    });
-                }
-
-                Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getId()], curReturnParcel.xSlotName);
                 curReturnParcel.pass = true;
             }
         }
 
+        /* any requests that didn't get a response above are passes */
         if (__profile.enabledAnalytics.requestTime) {
-            for (var htSlotId in outstandingXSlotNames) {
-                if (!outstandingXSlotNames.hasOwnProperty(htSlotId)) {
-                    continue;
-                }
-
-                EventsService.emit('hs_slot_pass', {
-                    sessionId: sessionId,
-                    statsId: __profile.statsId,
-                    htSlotId: htSlotId,
-                    xSlotNames: outstandingXSlotNames[htSlotId]
-                });
-            }
+            __baseClass._emitStatsEvent(sessionId, 'hs_slot_pass', outstandingXSlotNames);
         }
     }
 
@@ -339,26 +322,20 @@ function SonobiHtb(configs) {
         if (__profile.enabledAnalytics.requestTime) {
             for (var i = 0; i < returnParcels.length; i++) {
                 var parcel = returnParcels[i];
+                var htSlotId = parcel.htSlot.getId();
+                var requestId = parcel.requestId;
 
-                if (!xSlotNames.hasOwnProperty(parcel.htSlot.getId())) {
-                    xSlotNames[parcel.htSlot.getId()] = [];
-                }
-
-                xSlotNames[parcel.htSlot.getId()].push(parcel.xSlotName);
-            }
-
-            for (var htSlotId in xSlotNames) {
                 if (!xSlotNames.hasOwnProperty(htSlotId)) {
-                    continue;
+                    xSlotNames[htSlotId] = {};
+                }
+                if (!xSlotNames[htSlotId].hasOwnProperty(requestId)) {
+                    xSlotNames[htSlotId][requestId] = [];
                 }
 
-                EventsService.emit('hs_slot_request', {
-                    sessionId: sessionId,
-                    statsId: __profile.statsId,
-                    htSlotId: htSlotId,
-                    xSlotNames: xSlotNames[htSlotId]
-                });
+                xSlotNames[htSlotId][requestId].push(parcel.xSlotName);
             }
+
+            __baseClass._emitStatsEvent(sessionId, 'hs_slot_request', xSlotNames);
         }
 
         return new Prms(function (resolve) {
@@ -419,20 +396,7 @@ function SonobiHtb(configs) {
                         //? }
                     });
 
-                    if (__profile.enabledAnalytics.requestTime) {
-                        for (var htSlotId in xSlotNames) {
-                            if (!xSlotNames.hasOwnProperty(htSlotId)) {
-                                continue;
-                            }
-
-                            EventsService.emit('hs_slot_timeout', {
-                                sessionId: sessionId,
-                                statsId: __profile.statsId,
-                                htSlotId: htSlotId,
-                                xSlotNames: xSlotNames[htSlotId]
-                            });
-                        }
-                    }
+                    __baseClass._emitStatsEvent(sessionId, 'hs_slot_timeout', xSlotNames);
 
                     resolve(returnParcels);
                 },
@@ -447,20 +411,7 @@ function SonobiHtb(configs) {
                         //? }
                     });
 
-                    if (__profile.enabledAnalytics.requestTime) {
-                        for (var htSlotId in xSlotNames) {
-                            if (!xSlotNames.hasOwnProperty(htSlotId)) {
-                                continue;
-                            }
-
-                            EventsService.emit('hs_slot_error', {
-                                sessionId: sessionId,
-                                statsId: __profile.statsId,
-                                htSlotId: htSlotId,
-                                xSlotNames: xSlotNames[htSlotId]
-                            });
-                        }
-                    }
+                    __baseClass._emitStatsEvent(sessionId, 'hs_slot_error', xSlotNames);
 
                     resolve(returnParcels);
                 }
