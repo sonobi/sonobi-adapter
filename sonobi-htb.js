@@ -177,24 +177,27 @@ function SonobiHtb(configs) {
             var bid = bids[slotName];
 
             if (Utilities.isObject(bid) && !Utilities.isEmpty(bid)) {
+                var htSlotId = curReturnParcel.htSlot.getId();
+                var requestId = curReturnParcel.requestId;
+
                 /* Send analytics if enabled by partner */
                 if (__profile.enabledAnalytics.requestTime) {
                     EventsService.emit('hs_slot_bid', {
                         sessionId: sessionId,
                         statsId: __profile.statsId,
-                        htSlotId: curReturnParcel.htSlot.getId(),
+                        htSlotId: htSlotId,
                         xSlotNames: [curReturnParcel.xSlotName],
-                        requestId: curReturnParcel.requestId
+                        requestId: requestId
                     });
 
-                    if (outstandingXSlotNames[curReturnParcel.htSlot.getId()] && outstandingXSlotNames[curReturnParcel.htSlot.getId()][curReturnParcel.requestId]){
-                        Utilities.arrayDelete(outstandingXSlotNames[curReturnParcel.htSlot.getId()][curReturnParcel.requestId], curReturnParcel.xSlotName);
+                    if (outstandingXSlotNames[htSlotId] && outstandingXSlotNames[htSlotId][requestId]){
+                        Utilities.arrayDelete(outstandingXSlotNames[htSlotId][requestId], curReturnParcel.xSlotName);
                     }
                 }
 
                 /* Extract size */
                 var sizeString = bid.sbi_size; // jshint ignore: line
-                curReturnParcel.size = sizeString;
+                curReturnParcel.size = Size.stringToArray(sizeString)[0];
 
                 /* Attach targeting keys to returnParcel slots */
                 curReturnParcel.targetingType = 'slot';
