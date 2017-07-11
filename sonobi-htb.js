@@ -446,7 +446,7 @@ function SonobiHtb(configs) {
             partnerId: 'SonobiHtb',
             namespace: 'SonobiHtb',
             statsId: 'SBI',
-            version: '2.0.0',
+            version: '2.0.1',
             targetingType: 'slot',
             enabledAnalytics: {
                 requestTime: true
