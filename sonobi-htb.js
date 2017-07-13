@@ -465,7 +465,7 @@ function SonobiHtb(configs) {
                 id: 'ix_sbi_id',
                 om: 'ix_sbi_om'
             },
-            lineItemType: Constants.LineItemTypes.ID_AND_SIZE,
+            lineItemType: Constants.LineItemTypes.CUSTOM,
             callbackType: Partner.CallbackTypes.CALLBACK_NAME,
             architecture: Partner.Architectures.SRA,
             requestType: Partner.RequestTypes.JSONP
