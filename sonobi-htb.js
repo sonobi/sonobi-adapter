@@ -190,9 +190,16 @@ function SonobiHtb(configs) {
                         requestId: requestId
                     });
 
-                    if (outstandingXSlotNames[htSlotId] && outstandingXSlotNames[htSlotId][requestId]){
+                    if (outstandingXSlotNames[htSlotId] && outstandingXSlotNames[htSlotId][requestId]) {
                         Utilities.arrayDelete(outstandingXSlotNames[htSlotId][requestId], curReturnParcel.xSlotName);
                     }
+                }
+
+                var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
+
+                if (bidPriceLevel <= 0) {
+                    curReturnParcel.pass = true;
+                    continue;
                 }
 
                 /* Extract size */
@@ -203,7 +210,6 @@ function SonobiHtb(configs) {
                 curReturnParcel.targetingType = 'slot';
                 curReturnParcel.targeting = {};
 
-                var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
                 var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=dfp&aid=' + bid.sbi_aid + '"></script></body></html>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
@@ -347,7 +353,7 @@ function SonobiHtb(configs) {
                 //? if (DEBUG) {
                 parcels: returnParcels,
                 request: request
-                //? }
+                    //? }
             });
 
             Network.jsonp({
@@ -384,7 +390,7 @@ function SonobiHtb(configs) {
                         //? if (DEBUG) {
                         parcels: returnParcels,
                         request: request
-                        //? }
+                            //? }
                     });
                     resolve(returnParcels);
                 },
@@ -396,7 +402,7 @@ function SonobiHtb(configs) {
                         //? if (DEBUG) {
                         parcels: returnParcels,
                         request: request
-                        //? }
+                            //? }
                     });
 
                     __baseClass._emitStatsEvent(sessionId, 'hs_slot_timeout', xSlotNames);
@@ -411,7 +417,7 @@ function SonobiHtb(configs) {
                         //? if (DEBUG) {
                         parcels: returnParcels,
                         request: request
-                        //? }
+                            //? }
                     });
 
                     __baseClass._emitStatsEvent(sessionId, 'hs_slot_error', xSlotNames);
@@ -446,7 +452,7 @@ function SonobiHtb(configs) {
             partnerId: 'SonobiHtb',
             namespace: 'SonobiHtb',
             statsId: 'SBI',
-            version: '2.0.1',
+            version: '2.0.2',
             targetingType: 'slot',
             enabledAnalytics: {
                 requestTime: true
@@ -570,7 +576,7 @@ function SonobiHtb(configs) {
 
         //? if (TEST) {
         __parseResponse: __parseResponse
-        //? }
+            //? }
     };
 
     return Classify.derive(__baseClass, derivedClass);
