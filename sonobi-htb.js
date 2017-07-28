@@ -180,6 +180,13 @@ function SonobiHtb(configs) {
                 var htSlotId = curReturnParcel.htSlot.getId();
                 var requestId = curReturnParcel.requestId;
 
+                var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
+
+                if (bidPriceLevel <= 0) {
+                    curReturnParcel.pass = true;
+                    continue;
+                }
+
                 /* Send analytics if enabled by partner */
                 if (__profile.enabledAnalytics.requestTime) {
                     EventsService.emit('hs_slot_bid', {
@@ -193,13 +200,6 @@ function SonobiHtb(configs) {
                     if (outstandingXSlotNames[htSlotId] && outstandingXSlotNames[htSlotId][requestId]) {
                         Utilities.arrayDelete(outstandingXSlotNames[htSlotId][requestId], curReturnParcel.xSlotName);
                     }
-                }
-
-                var bidPriceLevel = bid.sbi_mouse; // jshint ignore: line
-
-                if (bidPriceLevel <= 0) {
-                    curReturnParcel.pass = true;
-                    continue;
                 }
 
                 /* Extract size */
