@@ -465,6 +465,9 @@ function SonobiHtb(configs) {
                 rateLimiting: {
                     enabled: false,
                     value: 0
+                },
+                prefetchDisabled: {
+                    enabled: true
                 }
             },
             targetingKeys: {
