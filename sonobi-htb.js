@@ -16,7 +16,6 @@
 // Dependencies ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-var BidTransformer = require('bid-transformer.js');
 var Browser = require('browser.js');
 var Classify = require('classify.js');
 var Network = require('network.js');
@@ -73,13 +72,6 @@ function SonobiHtb(configs) {
      * @private {object}
      */
     var __baseUrl;
-
-    /**
-     * Instances of BidTransformer for transforming bids.
-     *
-     * @private {object}
-     */
-    var __bidTransformers;
 
     /**
      * Ad response storage for different requests;
@@ -220,7 +212,7 @@ function SonobiHtb(configs) {
                             continue;
                         }
                         if (targetingKey === 'sbi_mouse') {
-                            curReturnParcel.targeting[targetingKey] = __bidTransformers.targeting.apply(bid[targetingKey]);
+                            curReturnParcel.targeting[targetingKey] = __baseClass._bidTransformers.targeting.apply(bid[targetingKey]);
                         } else {
                             curReturnParcel.targeting[targetingKey] = bid[targetingKey];
                         }
@@ -233,7 +225,7 @@ function SonobiHtb(configs) {
                 } else {
                     var targetingCpm;
                     if (Utilities.isNumeric(bidPriceLevel)) {
-                        targetingCpm = __bidTransformers.targeting.apply(bidPriceLevel);
+                        targetingCpm = __baseClass._bidTransformers.targeting.apply(bidPriceLevel);
                     } else {
                         targetingCpm = bidPriceLevel;
                     }
@@ -271,7 +263,7 @@ function SonobiHtb(configs) {
 
                 //? if(FEATURES.RETURN_PRICE) {
                 if (Utilities.isNumeric(bidPriceLevel)) {
-                    curReturnParcel.price = Number(__bidTransformers.price.apply(bidPriceLevel));
+                    curReturnParcel.price = Number(__baseClass._bidTransformers.price.apply(bidPriceLevel));
                 }
                 //? }
 
@@ -452,7 +444,7 @@ function SonobiHtb(configs) {
             partnerId: 'SonobiHtb',
             namespace: 'SonobiHtb',
             statsId: 'SBI',
-            version: '2.0.2',
+            version: '2.1.0',
             targetingType: 'slot',
             enabledAnalytics: {
                 requestTime: true
@@ -474,6 +466,7 @@ function SonobiHtb(configs) {
                 id: 'ix_sbi_id',
                 om: 'ix_sbi_om'
             },
+            bidUnitInCents: 100,
             lineItemType: Constants.LineItemTypes.CUSTOM,
             callbackType: Partner.CallbackTypes.CALLBACK_NAME,
             architecture: Partner.Architectures.SRA,
@@ -486,53 +479,6 @@ function SonobiHtb(configs) {
         if (results) {
             throw Whoopsie('INVALID_CONFIG', results);
         }
-        //? }
-
-        var bidTransformerConfigs = {
-            //? if (FEATURES.GPT_LINE_ITEMS) {
-            targeting: {
-                inputCentsMultiplier: 100, // Input is in cents
-                outputCentsDivisor: 1, // Output as cents
-                outputPrecision: 0, // With 0 decimal places
-                roundingType: 'FLOOR', // jshint ignore:line
-                floor: 0,
-                buckets: [{
-                    max: 2000, // Up to 20 dollar (above 5 cents)
-                    step: 5 // use 5 cent increments
-                }, {
-                    max: 5000, // Up to 50 dollars (above 20 dollars)
-                    step: 100 // use 1 dollar increments
-                }]
-            },
-            //? }
-            //? if (FEATURES.RETURN_PRICE) {
-            price: {
-                inputCentsMultiplier: 100, // Input is in cents
-                outputCentsDivisor: 1, // Output as cents
-                outputPrecision: 0, // With 0 decimal places
-                roundingType: 'NONE',
-            },
-            //? }
-        };
-
-        /* -------------------------------------------------------------------------- */
-
-        if (configs.bidTransformer) {
-            //? if (FEATURES.GPT_LINE_ITEMS) {
-            bidTransformerConfigs.targeting = configs.bidTransformer;
-            //? }
-            //? if (FEATURES.RETURN_PRICE) {
-            bidTransformerConfigs.price.inputCentsMultiplier = configs.bidTransformer.inputCentsMultiplier;
-            //? }
-        }
-
-        __bidTransformers = {};
-
-        //? if(FEATURES.GPT_LINE_ITEMS) {
-        __bidTransformers.targeting = BidTransformer(bidTransformerConfigs.targeting);
-        //? }
-        //? if(FEATURES.RETURN_PRICE) {
-        __bidTransformers.price = BidTransformer(bidTransformerConfigs.price);
         //? }
 
         __baseUrl = Browser.getProtocol() + '//apex.go.sonobi.com/trinity.js';
