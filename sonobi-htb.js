@@ -241,7 +241,7 @@ function SonobiHtb(configs) {
                 var pubKitAdId = RenderService.registerAd({
                     sessionId: sessionId,
                     partnerId: __profile.partnerId,
-                    adm: bid.creative,
+                    adm: bidCreative,
                     requestId: curReturnParcel.requestId,
                     size: curReturnParcel.size,
                     price: targetingCpm,
