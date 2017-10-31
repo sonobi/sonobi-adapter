@@ -16,7 +16,6 @@
 // Dependencies ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-var BidTransformer = require('bid-transformer.js');
 var Browser = require('browser.js');
 var Classify = require('classify.js');
 var Network = require('network.js');
@@ -75,13 +74,6 @@ function SonobiHtb(configs) {
     var __baseUrl;
 
     /**
-     * Instances of BidTransformer for transforming bids.
-     *
-     * @private {object}
-     */
-    var __bidTransformers;
-
-    /**
      * Ad response storage for different requests;
      *
      * @private {object}
@@ -114,7 +106,6 @@ function SonobiHtb(configs) {
      * @return {object}
      */
     function __generateRequestObj(returnParcels) {
-
         var keyMaker = {};
 
         /* Sonobi is SRA so iterate through all returnParcels for xSlotName and sonobiKey */
@@ -148,15 +139,6 @@ function SonobiHtb(configs) {
 
     /* Helpers
      * ---------------------------------- */
-
-    /**
-     * This function will render the ad given.
-     * @param  {Object} doc The document of the iframe where the ad will go.
-     * @param  {string} adm The ad code that came with the original demand.
-     */
-    function __render(doc, adm) {
-        System.documentWrite(doc, adm);
-    }
 
     /* Parses and extracts demand from adResponse according to the adapter and then attaches it
      * to the corresponding bid's returnParcel in the correct format using targeting keys.
@@ -210,6 +192,8 @@ function SonobiHtb(configs) {
                 curReturnParcel.targetingType = 'slot';
                 curReturnParcel.targeting = {};
 
+                var targetingCpm = '';
+
                 var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=dfp&aid=' + bid.sbi_aid + '"></script></body></html>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
@@ -220,7 +204,7 @@ function SonobiHtb(configs) {
                             continue;
                         }
                         if (targetingKey === 'sbi_mouse') {
-                            curReturnParcel.targeting[targetingKey] = __bidTransformers.targeting.apply(bid[targetingKey]);
+                            curReturnParcel.targeting[targetingKey] = __baseClass._bidTransformers.targeting.apply(bid[targetingKey]);
                         } else {
                             curReturnParcel.targeting[targetingKey] = bid[targetingKey];
                         }
@@ -230,38 +214,17 @@ function SonobiHtb(configs) {
                     if (adResponse.hasOwnProperty('sbi_dc')) {
                         returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
                     }
+
+                    continue;
                 } else {
-                    var targetingCpm;
                     if (Utilities.isNumeric(bidPriceLevel)) {
-                        targetingCpm = __bidTransformers.targeting.apply(bidPriceLevel);
+                        targetingCpm = __baseClass._bidTransformers.targeting.apply(bidPriceLevel);
                     } else {
                         targetingCpm = bidPriceLevel;
                     }
 
                     curReturnParcel.targeting[__baseClass._configs.targetingKeys.om] = [sizeString + '_' + targetingCpm];
                     curReturnParcel.targeting[__baseClass._configs.targetingKeys.id] = [curReturnParcel.requestId];
-
-                    if (__baseClass._configs.lineItemType === Constants.LineItemTypes.ID_AND_SIZE) {
-                        RenderService.registerAdByIdAndSize(
-                            sessionId,
-                            __profile.partnerId,
-                            __render, [bidCreative],
-                            '',
-                            __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0,
-                            curReturnParcel.requestId,
-                            curReturnParcel.size
-                        );
-                    } else if (__baseClass._configs.lineItemType === Constants.LineItemTypes.ID_AND_PRICE) {
-                        RenderService.registerAdByIdAndPrice(
-                            sessionId,
-                            __profile.partnerId,
-                            __render, [bidCreative],
-                            '',
-                            __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0,
-                            curReturnParcel.requestId,
-                            targetingCpm
-                        );
-                    }
                 }
                 //? }
 
@@ -271,18 +234,21 @@ function SonobiHtb(configs) {
 
                 //? if(FEATURES.RETURN_PRICE) {
                 if (Utilities.isNumeric(bidPriceLevel)) {
-                    curReturnParcel.price = Number(__bidTransformers.price.apply(bidPriceLevel));
+                    curReturnParcel.price = Number(__baseClass._bidTransformers.price.apply(bidPriceLevel));
                 }
                 //? }
 
+                var pubKitAdId = RenderService.registerAd({
+                    sessionId: sessionId,
+                    partnerId: __profile.partnerId,
+                    adm: bidCreative,
+                    requestId: curReturnParcel.requestId,
+                    size: curReturnParcel.size,
+                    price: targetingCpm,
+                    timeOfExpiry: __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0
+                });
+
                 //? if(FEATURES.INTERNAL_RENDER) {
-                var pubKitAdId = RenderService.registerAd(
-                    sessionId,
-                    __profile.partnerId,
-                    __render, [bidCreative],
-                    '',
-                    __profile.features.demandExpiry.enabled ? (__profile.features.demandExpiry.value + System.now()) : 0
-                );
                 curReturnParcel.targeting.pubKitAdId = pubKitAdId;
                 //? }
 
@@ -452,7 +418,7 @@ function SonobiHtb(configs) {
             partnerId: 'SonobiHtb',
             namespace: 'SonobiHtb',
             statsId: 'SBI',
-            version: '2.0.2',
+            version: '2.1.0',
             targetingType: 'slot',
             enabledAnalytics: {
                 requestTime: true
@@ -474,7 +440,8 @@ function SonobiHtb(configs) {
                 id: 'ix_sbi_id',
                 om: 'ix_sbi_om'
             },
-            lineItemType: Constants.LineItemTypes.CUSTOM,
+            bidUnitInCents: 100,
+            lineItemType: Constants.LineItemTypes.ID_AND_SIZE,
             callbackType: Partner.CallbackTypes.CALLBACK_NAME,
             architecture: Partner.Architectures.SRA,
             requestType: Partner.RequestTypes.JSONP
@@ -486,53 +453,6 @@ function SonobiHtb(configs) {
         if (results) {
             throw Whoopsie('INVALID_CONFIG', results);
         }
-        //? }
-
-        var bidTransformerConfigs = {
-            //? if (FEATURES.GPT_LINE_ITEMS) {
-            targeting: {
-                inputCentsMultiplier: 100, // Input is in cents
-                outputCentsDivisor: 1, // Output as cents
-                outputPrecision: 0, // With 0 decimal places
-                roundingType: 'FLOOR', // jshint ignore:line
-                floor: 0,
-                buckets: [{
-                    max: 2000, // Up to 20 dollar (above 5 cents)
-                    step: 5 // use 5 cent increments
-                }, {
-                    max: 5000, // Up to 50 dollars (above 20 dollars)
-                    step: 100 // use 1 dollar increments
-                }]
-            },
-            //? }
-            //? if (FEATURES.RETURN_PRICE) {
-            price: {
-                inputCentsMultiplier: 100, // Input is in cents
-                outputCentsDivisor: 1, // Output as cents
-                outputPrecision: 0, // With 0 decimal places
-                roundingType: 'NONE',
-            },
-            //? }
-        };
-
-        /* -------------------------------------------------------------------------- */
-
-        if (configs.bidTransformer) {
-            //? if (FEATURES.GPT_LINE_ITEMS) {
-            bidTransformerConfigs.targeting = configs.bidTransformer;
-            //? }
-            //? if (FEATURES.RETURN_PRICE) {
-            bidTransformerConfigs.price.inputCentsMultiplier = configs.bidTransformer.inputCentsMultiplier;
-            //? }
-        }
-
-        __bidTransformers = {};
-
-        //? if(FEATURES.GPT_LINE_ITEMS) {
-        __bidTransformers.targeting = BidTransformer(bidTransformerConfigs.targeting);
-        //? }
-        //? if(FEATURES.RETURN_PRICE) {
-        __bidTransformers.price = BidTransformer(bidTransformerConfigs.price);
         //? }
 
         __baseUrl = Browser.getProtocol() + '//apex.go.sonobi.com/trinity.js';
