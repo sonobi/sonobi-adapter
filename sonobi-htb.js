@@ -215,7 +215,6 @@ function SonobiHtb(configs) {
                         returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
                     }
 
-                    continue;
                 } else {
                     if (Utilities.isNumeric(bidPriceLevel)) {
                         targetingCpm = __baseClass._bidTransformers.targeting.apply(bidPriceLevel);
