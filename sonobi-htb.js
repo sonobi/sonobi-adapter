@@ -215,7 +215,6 @@ function SonobiHtb(configs) {
                         returnParcels[i].targeting.sbi_dc = adResponse.sbi_dc; // jshint ignore: line
                     }
 
-                    continue;
                 } else {
                     if (Utilities.isNumeric(bidPriceLevel)) {
                         targetingCpm = __baseClass._bidTransformers.targeting.apply(bidPriceLevel);
@@ -418,7 +417,7 @@ function SonobiHtb(configs) {
             partnerId: 'SonobiHtb',
             namespace: 'SonobiHtb',
             statsId: 'SBI',
-            version: '2.1.0',
+            version: '2.1.1',
             targetingType: 'slot',
             enabledAnalytics: {
                 requestTime: true
