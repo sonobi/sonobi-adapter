@@ -1,5 +1,5 @@
 /**
- * @author:    Will Liu <will.liu@indexexchange.com>
+ * @author:    Partner
  * @license:   UNLICENSED
  *
  * @copyright: Copyright (c) 2017 by Index Exchange. All rights reserved.
