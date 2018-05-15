@@ -26,13 +26,15 @@ var Size = require('size.js');
 var SpaceCamp = require('space-camp.js');
 var System = require('system.js');
 var Utilities = require('utilities.js');
-var Whoopsie = require('whoopsie.js');
+var ComplianceService;
 var EventsService;
 var RenderService;
 
 //? if (DEBUG) {
 var ConfigValidators = require('config-validators.js');
 var PartnerSpecificValidator = require('sonobi-htb-validator.js');
+var Scribe = require('scribe.js');
+var Whoopsie = require('whoopsie.js');
 //? }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +64,7 @@ function SonobiHtb(configs) {
     /**
      * Profile for this partner.
      *
-     * @private {object}
+     * @private  {object}
      */
     var __profile;
 
@@ -128,6 +130,15 @@ function SonobiHtb(configs) {
             key_maker: JSON.stringify(keyMaker), // jshint ignore:line
             cv: 'sbi'
         };
+
+        var gdprStatus = ComplianceService.gdpr.getConsent();
+        var privacyEnabled = ComplianceService.isPrivacyEnabled();
+        if (privacyEnabled && gdprStatus) {
+            data.gdpr = gdprStatus.applies;
+            if(gdprStatus.consentString) {
+                data.consent_string = gdprStatus.consentString;
+            }
+        }
 
         return {
             url: __baseUrl,
@@ -410,6 +421,7 @@ function SonobiHtb(configs) {
      * ---------------------------------- */
 
     (function __constructor() {
+      ComplianceService = SpaceCamp.services.ComplianceService;
         EventsService = SpaceCamp.services.EventsService;
         RenderService = SpaceCamp.services.RenderService;
 
