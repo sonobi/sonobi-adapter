@@ -129,6 +129,8 @@ function SonobiHtb(configs) {
         var data = {
             key_maker: JSON.stringify(keyMaker), // jshint ignore:line
             cv: 'sbi',
+            lib_v: __profile.version,
+            lib_name: 'ix',
             vp: Browser.getDeviceTypeByUserAgent()
         };
 
