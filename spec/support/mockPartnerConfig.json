@@ -1,5 +1,6 @@
 {
     "timeout": 1000,
+    "ref": "http://example.com",
     "xSlots": {
         "1": {
             "placementId": "54321",
