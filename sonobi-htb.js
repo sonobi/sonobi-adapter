@@ -128,7 +128,8 @@ function SonobiHtb(configs) {
         /* build data */
         var data = {
             key_maker: JSON.stringify(keyMaker), // jshint ignore:line
-            cv: 'sbi'
+            cv: 'sbi',
+            vp: Browser.getDeviceTypeByUserAgent()
         };
 
         var gdprStatus = ComplianceService.gdpr.getConsent();

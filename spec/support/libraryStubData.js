@@ -28,6 +28,9 @@ var libraryStubData = {
         getPageUrl: function () {
             return 'http://www.indexexchange.com';
         },
+        getDeviceTypeByUserAgent: function () {
+            return 'mobile';
+        },
         topWindow: mock.getWindow()
     },
     'classify.js': {
