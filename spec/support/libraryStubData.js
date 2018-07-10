@@ -28,9 +28,6 @@ var libraryStubData = {
         getPageUrl: function () {
             return 'http://www.indexexchange.com';
         },
-        getDeviceTypeByUserAgent: function () {
-            return 'mobile';
-        },
         topWindow: mock.getWindow()
     },
     'classify.js': {
@@ -130,6 +127,11 @@ var libraryStubData = {
             }
           }
         },
+        DeviceTypeChecker: {
+            getDeviceType: function() {
+                return 'mobile';
+            }
+        }
     },
     'system.js': {
         generateUniqueId: function () {

@@ -168,7 +168,7 @@ describe('generateRequestObj', function () {
                 expect(requestObject).to.exist;
                 expect(requestObject.vp).to.equal('mobile');
                 expect(requestObject.data.gdpr).to.eq(true);
-                expect(requestObject.data.consent_string).to.eq('BOQ7WlgOQ7WlgABABwAAABJOACgACAAQABA')
+                expect(requestObject.data.consent_string).to.eq('BOQ7WlgOQ7WlgABABwAAABJOACgACAAQABA');
             });
             /* -----------------------------------------------------------------------*/
         }

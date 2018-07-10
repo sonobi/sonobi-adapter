@@ -131,7 +131,8 @@ function SonobiHtb(configs) {
             cv: 'sbi',
             lib_v: __profile.version,
             lib_name: 'ix',
-            vp: Browser.getDeviceTypeByUserAgent()
+            vp: SpaceCamp.DeviceTypeChecker.getDeviceType(),
+            ref: Browser.getPageUrl()
         };
 
         var gdprStatus = ComplianceService.gdpr.getConsent();
@@ -208,7 +209,7 @@ function SonobiHtb(configs) {
 
                 var targetingCpm = '';
 
-                var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=dfp&aid=' + bid.sbi_aid + '"></script></body></html>'; // jshint ignore: line
+                var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=null&aid=' + bid.sbi_aid + '&ref='+ Browser.getPageUrl() +'"></script></body></html>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
                 //? if(FEATURES.GPT_LINE_ITEMS) {
