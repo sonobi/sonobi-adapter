@@ -7,6 +7,7 @@ function Partner(profile, configs, requiredResources, fns) {
     (function __constructor() {
         _configs = {
             timeout: 0,
+            ref: 'http://.example.com',
             lineItemType: profile.lineItemType,
             targetingKeys: profile.targetingKeys,
             rateLimiting: profile.features.rateLimiting

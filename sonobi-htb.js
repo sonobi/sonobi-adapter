@@ -26,13 +26,15 @@ var Size = require('size.js');
 var SpaceCamp = require('space-camp.js');
 var System = require('system.js');
 var Utilities = require('utilities.js');
-var Whoopsie = require('whoopsie.js');
+var ComplianceService;
 var EventsService;
 var RenderService;
 
 //? if (DEBUG) {
 var ConfigValidators = require('config-validators.js');
 var PartnerSpecificValidator = require('sonobi-htb-validator.js');
+var Scribe = require('scribe.js');
+var Whoopsie = require('whoopsie.js');
 //? }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +64,7 @@ function SonobiHtb(configs) {
     /**
      * Profile for this partner.
      *
-     * @private {object}
+     * @private  {object}
      */
     var __profile;
 
@@ -126,8 +128,21 @@ function SonobiHtb(configs) {
         /* build data */
         var data = {
             key_maker: JSON.stringify(keyMaker), // jshint ignore:line
-            cv: 'sbi'
+            cv: 'sbi',
+            lib_v: __profile.version,
+            lib_name: 'ix',
+            vp: SpaceCamp.DeviceTypeChecker.getDeviceType(),
+            ref: Browser.getPageUrl()
         };
+
+        var gdprStatus = ComplianceService.gdpr.getConsent();
+        var privacyEnabled = ComplianceService.isPrivacyEnabled();
+        if (privacyEnabled && gdprStatus) {
+            data.gdpr = gdprStatus.applies;
+            if(gdprStatus.consentString) {
+                data.consent_string = gdprStatus.consentString;
+            }
+        }
 
         return {
             url: __baseUrl,
@@ -194,7 +209,7 @@ function SonobiHtb(configs) {
 
                 var targetingCpm = '';
 
-                var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=dfp&aid=' + bid.sbi_aid + '"></script></body></html>'; // jshint ignore: line
+                var bidCreative = '<html><body><script type="text/javascript"src="//' + adResponse.sbi_dc + 'apex.go.sonobi.com/sbi.js?as=null&aid=' + bid.sbi_aid + '&ref='+ Browser.getPageUrl() +'"></script></body></html>'; // jshint ignore: line
 
                 /* custom mode sets all the targeting keys that are returned by sonobi */
                 //? if(FEATURES.GPT_LINE_ITEMS) {
@@ -410,6 +425,7 @@ function SonobiHtb(configs) {
      * ---------------------------------- */
 
     (function __constructor() {
+      ComplianceService = SpaceCamp.services.ComplianceService;
         EventsService = SpaceCamp.services.EventsService;
         RenderService = SpaceCamp.services.RenderService;
 
