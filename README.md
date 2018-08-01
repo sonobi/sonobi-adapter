@@ -682,4 +682,3 @@ However these tests are very basic and we encourage you to write your own test c
 In order to create additional test cases and further verify your module, please fill out the `ADD MORE TEST CASES TO TEST AGAINST REAL VALUES` section in both `generateRequestObj.spec.js` and `parseResponse.spec.js` for your corresponding module architecture type.
 
 
-
